@@ -1,0 +1,55 @@
+clc
+clear
+close all
+
+    % Model Parameters
+    C_m = 1; % Membrane capacitance
+    g_Na = 120; % Sodium channel conductance
+    g_K = 36; % Potassium channel conductance
+    g_L = 0.3; % Leakage current conductance
+    E_Na = 50; % Sodium equilibrium potential
+    E_K = -77; % Potassium equilibrium potential
+    E_L = -54.387; % Leakage equilibrium potential
+
+    % Initial Conditions
+    V = -65; % Initial potential
+    n = 0.3177; % Initial value of n (Potassium channel activation gate)
+    m = 0.0529; % Initial value of m (Sodium channel activation gate)
+    h = 0.5961; % Initial value of h (Sodium channel inactivation gate)
+
+    dt = 0.01; % Time step
+    T = 50; % Total simulation time
+    time = 0:dt:T; % Time vector
+    V_trace = zeros(size(time)); % Array to store membrane potential
+
+    for i = 1:length(time)
+        V_trace(i) = V; % Store current membrane potential
+
+        % Calculate rate constants (alpha and beta) for m, h, and n
+        % These constants determine the transition rates between open and closed states of the gates
+        alpha_m = (2.5 - 0.1*(V + 65)) / (exp(2.5 - 0.1*(V + 65)) - 1);
+        beta_m = 4 * exp(-(V + 65)/18);
+        alpha_h = 0.07 * exp(-(V + 65)/20);
+        beta_h = 1 / (exp(3 - 0.1*(V + 65)) + 1);
+        alpha_n = (0.1 - 0.01*(V + 65)) / (exp(1 - 0.1*(V + 65)) - 1);
+        beta_n = 0.125 * exp(-(V + 65)/80);
+
+        % Update gate variables using Euler's method
+        m = m + dt * (alpha_m * (1 - m) - beta_m * m);
+        h = h + dt * (alpha_h * (1 - h) - beta_h * h);
+        n = n + dt * (alpha_n * (1 - n) - beta_n * n);
+
+        % Calculate new membrane potential using the Hodgkin-Huxley equations
+        I_ext = 10 * (time(i) > 10 && time(i) < 40); % External current injection (stimulus)
+        % The stimulus is applied between t=10ms and t=40ms
+        
+        % Update V based on ionic currents and external current
+        V = V + dt * (1/C_m) * (-g_Na*m^3*h*(V-E_Na) - g_K*n^4*(V-E_K) - g_L*(V-E_L) + I_ext);
+    end
+
+    % Plotting the results
+    figure; % Create a new figure window
+    plot(time, V_trace); % Plot membrane potential over time
+    xlabel('Time (ms)'); % Label for the x-axis
+    ylabel('Membrane Potential (mV)'); % Label for the y-axis
+    title('Hodgkin-Huxley Model Simulation'); % Title of the plot
